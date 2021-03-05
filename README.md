@@ -32,8 +32,7 @@ strcpy later on the target string, another buffer overflow.
 This new function returns the length of the source string and always adds NULL
 to the target string as long as the buffer size is not zero. Many C programmers
 recommend strlcpy over strncpy. The [strlcpy manpage][strlcpy] regards strlcpy
-as a replagqcement of strncpy. The Git project even [banned
-strncpy][strncpy-ban].
+as a replacement of strncpy. The Git project even [bans strncpy][strncpy-ban].
 
 I have never used strlcpy before as it doesn't conform to the C99 or POSIX
 standards. When I took a more serious look today, I actually think it is no
@@ -83,9 +82,10 @@ This is a contrived example to highlight the issue with strlcpy. Experienced
 programmers would probably use memcpy to avoid the trap. Nonetheless,
 experienced programmers wouldn't fall into the strcpy/strncpy trap, either.
 The discussion here is really about which method is less prone to misuses.
-The strxcpy function above is probably the most robust. At the very least,
-strlcpy is not a replacement of strncpy even if the [strlcpy manpage][strlcpy]
-says so.
+The strxcpy function above has one fewer pitfall and is probably the most
+robust among the options so far. At the very least, people shouldn't take
+strlcpy as a replacement of strncpy even if the [strlcpy manpage][strlcpy] says
+so.
 
 [strlcpy]: https://linux.die.net/man/3/strlcpy
 [strncpy]: https://linux.die.net/man/3/strncpy
