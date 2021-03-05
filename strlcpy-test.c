@@ -13,7 +13,7 @@ void gen_hex_str(char *buf, long len)
 	buf[i] = 0;
 }
 
-// my preferred strncpy() replacement; returns the number of chars copied
+// my preferred strncpy() replacement; returns the number of chars written, including NULL
 size_t strxcpy(char *dst, const char *src, size_t size)
 {
 	size_t i = 0;
@@ -21,8 +21,8 @@ size_t strxcpy(char *dst, const char *src, size_t size)
 		for (i = 0; i < size - 1 && src[i]; ++i)
 			dst[i] = src[i];
 		dst[i] = 0;
-	}
-	return i;
+		return i + 1;
+	} else return 0;
 }
 
 // from https://github.com/git/git/blob/master/compat/strlcpy.c
@@ -41,26 +41,51 @@ size_t gitstrlcpy(char *dest, const char *src, size_t size)
 // test strncpy-like prototype
 void test_strncpy(char *dst, const char *src, long len, long step, char *(*cpy_func)(char *, const char *, size_t))
 {
-	long i;
-	for (i = 0; i < len; i += step + step) {
+	long k, i;
+	for (i = k = 0; i < len; i += step + step) {
 		long n = i + step < len? step : len - i;
-		cpy_func(&dst[i], &src[i], n);
+		cpy_func(&dst[k], &src[i], n);
+		k += n;
 	}
+	dst[k] = 0;
 }
 
 // test strlcpy-like prototype
 void test_strlcpy(char *dst, const char *src, long len, long step, size_t (*cpy_func)(char *, const char *, size_t))
 {
-	long i;
-	for (i = 0; i < len; i += step + step) {
+	long k, i;
+	for (i = k = 0; i < len; i += step + step) {
 		long n = i + step < len? step : len - i;
-		cpy_func(&dst[i], &src[i], n);
+		cpy_func(&dst[k], &src[i], n + 1);
+		k += n;
+	}
+}
+
+// test snprintf
+void test_snprintf(char *dst, const char *src, long len, long step)
+{
+	long k, i;
+	for (i = k = 0; i < len; i += step + step) {
+		long n = i + step < len? step : len - i;
+		snprintf(&dst[k], n + 1, "%*s", (int)n, &src[i]);
+		k += n;
+	}
+}
+
+// test snprintf
+void test_memcpy(char *dst, const char *src, long len, long step)
+{
+	long k, i;
+	for (i = k = 0; i < len; i += step + step) {
+		long n = i + step < len? step : len - i;
+		memcpy(&dst[k], &src[i], n);
+		k += n;
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	long len = 2000000, step = 10;
+	long len = 3000000, step = 11;
 	char *dst, *src;
 	clock_t t;
 
@@ -78,6 +103,10 @@ int main(int argc, char *argv[])
 	test_strlcpy(dst, src, len, step, strxcpy);
 	printf("strxcpy by me: %.3f sec\n", (double)(clock() - t) / CLOCKS_PER_SEC);
 
+	t = clock();
+	test_memcpy(dst, src, len, step);
+	printf("memcpy from libc: %.3f sec\n", (double)(clock() - t) / CLOCKS_PER_SEC);
+
 #ifdef __MACH__ // Linux doesn't have strlcpy()
 	t = clock();
 	test_strlcpy(dst, src, len, step, strlcpy);
@@ -87,6 +116,10 @@ int main(int argc, char *argv[])
 	t = clock();
 	test_strlcpy(dst, src, len, step, gitstrlcpy);
 	printf("gitstrlcpy from git: %.3f sec\n", (double)(clock() - t) / CLOCKS_PER_SEC);
+
+	t = clock();
+	test_snprintf(dst, src, len, step);
+	printf("snprintf from libc: %.3f sec\n", (double)(clock() - t) / CLOCKS_PER_SEC);
 
 	free(dst);
 	free(src);
